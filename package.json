@@ -1,0 +1,14 @@
+{
+    "name": "anilist-plugin-stremio",
+    "version": "1.0.0",
+    "description": "AniList integration plugin for Stremio Enhanced - automatically syncs anime watching progress.",
+    "main": "./src/main.ts",
+    "scripts": {
+        "build": "bun run build.ts"
+    },
+    "author": "REVENGE977",
+    "license": "MIT",
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    }
+}
