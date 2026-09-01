@@ -6,7 +6,7 @@
     "scripts": {
         "build": "bun run build.ts"
     },
-    "author": "REVENGE977",
+    "author": "GefyDev <hi@gefy.dev>",
     "license": "MIT",
     "devDependencies": {
         "typescript": "^5.0.0"

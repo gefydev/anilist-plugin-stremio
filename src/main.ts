@@ -1,9 +1,9 @@
 /**
  * @name AniListSync
  * @description Syncs your anime watching progress with AniList automatically. Tracks episodes watched in Stremio and updates your AniList list.
- * @updateUrl https://raw.githubusercontent.com/REVENGE977/anilist-plugin-stremio/main/dist/AniListSync.plugin.js
+ * @updateUrl https://raw.githubusercontent.com/GefyDev/anilist-plugin-stremio/main/dist/AniListSync.plugin.js
  * @version 1.0.0
- * @author REVENGE977
+ * @author GefyDev
  */
 
 import { registerPluginSettings } from './settings';
