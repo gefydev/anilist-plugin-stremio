@@ -8,7 +8,7 @@ export const findSettingRow = (labelText: string): HTMLElement | null => {
     if (el.children.length === 0 && (el.textContent || '').trim().toLowerCase().includes(labelText.toLowerCase())) {
       let curr: HTMLElement | null = el.parentElement;
       for (let i = 0; i < 6 && curr; i++) {
-        const input = curr.querySelector('input');
+        const input = curr.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])') as HTMLInputElement;
         if (input) {
           return curr;
         }
@@ -21,15 +21,15 @@ export const findSettingRow = (labelText: string): HTMLElement | null => {
 
 export const findSettingInput = (keywords: string[]): HTMLInputElement | null => {
   for (const kw of keywords) {
-    const direct = document.querySelector(`input[name="${kw}"], input#${kw}, input[data-key="${kw}"], input[placeholder*="${kw}"]`) as HTMLInputElement;
-    if (direct) return direct;
+    const direct = document.querySelector(`input[name="${kw}"]:not([type="file"]), input#${kw}:not([type="file"]), input[data-key="${kw}"]:not([type="file"]), input[placeholder*="${kw}"]:not([type="file"])`) as HTMLInputElement;
+    if (direct && direct.type !== 'file') return direct;
   }
 
   for (const kw of keywords) {
     const row = findSettingRow(kw);
     if (row) {
-      const input = row.querySelector('input');
-      if (input) return input;
+      const input = row.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])') as HTMLInputElement;
+      if (input && input.type !== 'file') return input;
     }
   }
 
@@ -38,8 +38,10 @@ export const findSettingInput = (keywords: string[]): HTMLInputElement | null =>
 
 export const updateDomInputs = (username: string, userId: string, status?: 'connected' | 'error' | 'loading'): void => {
   const usernameInput = findSettingInput(['anilist_username', 'Connected Account', 'AniList Username']);
-  if (usernameInput) {
-    usernameInput.value = username;
+  if (usernameInput && usernameInput.type !== 'file' && usernameInput.type !== 'checkbox' && usernameInput.type !== 'radio') {
+    try {
+      usernameInput.value = username;
+    } catch (e) {}
     usernameInput.disabled = true;
     usernameInput.readOnly = true;
     usernameInput.style.opacity = '0.7';
@@ -47,8 +49,10 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
   }
 
   const userIdInput = findSettingInput(['anilist_user_id', 'AniList User ID']);
-  if (userIdInput) {
-    userIdInput.value = userId;
+  if (userIdInput && userIdInput.type !== 'file' && userIdInput.type !== 'checkbox' && userIdInput.type !== 'radio') {
+    try {
+      userIdInput.value = userId;
+    } catch (e) {}
     userIdInput.disabled = true;
     userIdInput.readOnly = true;
     userIdInput.style.opacity = '0.7';
@@ -56,7 +60,7 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
   }
 
   const tokenInput = findSettingInput(['anilist_token', 'AniList Access Token']);
-  if (tokenInput && tokenInput.parentElement) {
+  if (tokenInput && tokenInput.type !== 'file' && tokenInput.parentElement) {
     let badge = document.getElementById('anilist-status-badge');
     if (!badge) {
       badge = document.createElement('div');
