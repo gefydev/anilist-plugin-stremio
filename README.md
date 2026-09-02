@@ -38,17 +38,35 @@
 
 ## 🔑 AniList Authentication Setup
 
-The plugin uses AniList's **OAuth2 Auth PIN / Implicit Flow**:
+The plugin uses AniList's **OAuth2 Implicit Flow** to authenticate securely without storing your account password. Tokens are generated directly by AniList and remain valid for 1 year.
 
-1. Open your browser and navigate to the AniList authorization page:
-   ```text
-   https://anilist.co/api/v2/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=token
-   ```
-2. Click **Authorize** to grant list management access.
-3. AniList will display your long-lived `access_token` (valid for 1 year).
-4. Copy the token and paste it in **Stremio Enhanced** → **Settings** → **Plugins** → **AniListSync** under **"AniList Access Token"**.
+### Step 1: Create an AniList API Client (Takes 30 seconds)
+1. Log in to [AniList](https://anilist.co) and go to **[AniList Developer Settings](https://anilist.co/settings/developer)**.
+2. Click **Create New Client** (or **Create Developer App**).
+3. Fill in the fields:
+   - **Name:** `AniListSync` (or any name you prefer)
+   - **Redirect URL:** `https://anilist.co/api/v2/oauth/pin`
+4. Click **Save**.
+5. Copy your numerical **Client ID** (e.g., `50001` or your generated ID).
 
 ---
+
+### Step 2: Generate your Access Token
+1. Open the following URL in your browser, replacing `<YOUR_CLIENT_ID>` with your Client ID:
+   ```text
+   https://anilist.co/api/v2/oauth/authorize?client_id=<YOUR_CLIENT_ID>&response_type=token
+   ```
+2. Click **Authorize** to grant list access.
+3. AniList will display your long-lived `access_token` on the screen.
+4. Copy the entire token string.
+
+---
+
+### Step 3: Connect with Stremio Enhanced
+1. In **Stremio Enhanced**, go to **Settings** → **Plugins** → **AniListSync** (click the gear icon).
+2. Paste your token into the **AniList Access Token** field.
+3. The plugin will immediately validate your token and display `🟢 Connected as <your_username>`.
+4. Click **Close** to save your settings.
 
 ## 🛠️ Plugin Settings
 
