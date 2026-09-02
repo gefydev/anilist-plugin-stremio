@@ -1,4 +1,5 @@
 import { getViewer } from './anilistApi';
+import { updateDomInputs } from './settings';
 
 declare const StremioEnhancedAPI: any;
 
@@ -19,14 +20,29 @@ export const validateAndSaveToken = async (rawToken: string, notify = true): Pro
     await StremioEnhancedAPI.saveSetting('anilist_token', '');
     await StremioEnhancedAPI.saveSetting('anilist_username', 'Not connected');
     await StremioEnhancedAPI.saveSetting('anilist_user_id', '');
+    try {
+      localStorage.removeItem('anilist_token');
+      localStorage.removeItem('anilist_username');
+      localStorage.removeItem('anilist_user_id');
+    } catch (e) {}
+    updateDomInputs('Not connected', '');
     return null;
   }
+
+  updateDomInputs('Validating...', '', 'loading');
 
   const viewer = await getViewer(token);
   if (viewer && viewer.id) {
     await StremioEnhancedAPI.saveSetting('anilist_token', token);
     await StremioEnhancedAPI.saveSetting('anilist_username', viewer.name);
     await StremioEnhancedAPI.saveSetting('anilist_user_id', viewer.id.toString());
+    try {
+      localStorage.setItem('anilist_token', token);
+      localStorage.setItem('anilist_username', viewer.name);
+      localStorage.setItem('anilist_user_id', viewer.id.toString());
+    } catch (e) {}
+
+    updateDomInputs(viewer.name, viewer.id.toString(), 'connected');
 
     if (notify) {
       await StremioEnhancedAPI.showAlert(
@@ -42,6 +58,12 @@ export const validateAndSaveToken = async (rawToken: string, notify = true): Pro
 
   await StremioEnhancedAPI.saveSetting('anilist_username', 'Invalid token');
   await StremioEnhancedAPI.saveSetting('anilist_user_id', '');
+  try {
+    localStorage.setItem('anilist_username', 'Invalid token');
+    localStorage.removeItem('anilist_user_id');
+  } catch (e) {}
+
+  updateDomInputs('Invalid token', '', 'error');
 
   if (notify) {
     await StremioEnhancedAPI.showAlert(

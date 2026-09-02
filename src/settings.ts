@@ -2,6 +2,73 @@ import { validateAndSaveToken, getToken } from './auth';
 
 declare const StremioEnhancedAPI: any;
 
+export const findSettingInput = (keywords: string[]): HTMLInputElement | null => {
+  for (const kw of keywords) {
+    const direct = document.querySelector(`input[name="${kw}"], input#${kw}, input[data-key="${kw}"]`) as HTMLInputElement;
+    if (direct) return direct;
+  }
+
+  const allInputs = Array.from(document.querySelectorAll('input'));
+  for (const input of allInputs) {
+    const parent = input.closest('.setting-item, .setting, .settings-item, .item, .option-container, tr, div');
+    if (parent) {
+      const text = (parent.textContent || '').toLowerCase();
+      if (keywords.some(kw => text.includes(kw.toLowerCase()))) {
+        return input;
+      }
+    }
+  }
+  return null;
+};
+
+export const updateDomInputs = (username: string, userId: string, status?: 'connected' | 'error' | 'loading'): void => {
+  const usernameInput = findSettingInput(['anilist_username', 'Connected Account', 'AniList Username']);
+  if (usernameInput) {
+    usernameInput.value = username;
+    usernameInput.disabled = true;
+    usernameInput.readOnly = true;
+    usernameInput.style.opacity = '0.7';
+  }
+
+  const userIdInput = findSettingInput(['anilist_user_id', 'AniList User ID']);
+  if (userIdInput) {
+    userIdInput.value = userId;
+    userIdInput.disabled = true;
+    userIdInput.readOnly = true;
+    userIdInput.style.opacity = '0.7';
+  }
+
+  const tokenInput = findSettingInput(['anilist_token', 'AniList Access Token']);
+  if (tokenInput && tokenInput.parentElement) {
+    let badge = document.getElementById('anilist-status-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'anilist-status-badge';
+      badge.style.marginTop = '6px';
+      badge.style.fontSize = '12px';
+      badge.style.fontWeight = 'bold';
+      badge.style.display = 'flex';
+      badge.style.alignItems = 'center';
+      badge.style.gap = '6px';
+      tokenInput.parentElement.appendChild(badge);
+    }
+
+    if (status === 'loading') {
+      badge.style.color = '#f59e0b';
+      badge.innerHTML = '⏳ <span>Validating token with AniList...</span>';
+    } else if (status === 'connected' || (username && username !== 'Not connected' && username !== 'Invalid token')) {
+      badge.style.color = '#10b981';
+      badge.innerHTML = `🟢 <span>Connected as <strong>${username}</strong>${userId ? ` (ID: ${userId})` : ''}</span>`;
+    } else if (status === 'error' || username === 'Invalid token') {
+      badge.style.color = '#ef4444';
+      badge.innerHTML = '🔴 <span>Invalid or expired token</span>';
+    } else {
+      badge.style.color = '#9ca3af';
+      badge.innerHTML = '⚪ <span>Not connected (paste token above)</span>';
+    }
+  }
+};
+
 export const registerPluginSettings = async (): Promise<void> => {
   await StremioEnhancedAPI.registerSettings([
     {
@@ -68,48 +135,53 @@ export const registerPluginSettings = async (): Promise<void> => {
     }
   }
 
-  setupDisabledSettingsObserver();
+  setupSettingsObserver();
 };
 
-const setupDisabledSettingsObserver = (): void => {
-  const readOnlyKeys = ['anilist_username', 'anilist_user_id'];
+const setupSettingsObserver = (): void => {
+  let lastTokenValue = '';
 
-  const applyDisabled = () => {
-    for (const key of readOnlyKeys) {
-      const inputs = document.querySelectorAll(`input[name="${key}"], input[id*="${key}"]`);
-      inputs.forEach((input: Element) => {
-        const htmlInput = input as HTMLInputElement;
-        htmlInput.disabled = true;
-        htmlInput.readOnly = true;
-        htmlInput.style.opacity = '0.6';
-        htmlInput.style.cursor = 'not-allowed';
+  const syncUI = async () => {
+    const username = (await StremioEnhancedAPI.getSetting('anilist_username')) || localStorage.getItem('anilist_username') || 'Not connected';
+    const userId = (await StremioEnhancedAPI.getSetting('anilist_user_id')) || localStorage.getItem('anilist_user_id') || '';
+    
+    updateDomInputs(username, userId);
+
+    const tokenInput = findSettingInput(['anilist_token', 'AniList Access Token']);
+    if (tokenInput && !tokenInput.dataset.anilistBound) {
+      tokenInput.dataset.anilistBound = 'true';
+      lastTokenValue = tokenInput.value.trim();
+
+      const onTokenInput = async () => {
+        const val = tokenInput.value.trim();
+        if (val === lastTokenValue) return;
+        lastTokenValue = val;
+
+        if (val.length > 20) {
+          updateDomInputs('Validating...', '', 'loading');
+          await validateAndSaveToken(val, true);
+        } else if (val.length === 0) {
+          await validateAndSaveToken('', false);
+        }
+      };
+
+      tokenInput.addEventListener('paste', () => setTimeout(onTokenInput, 50));
+      tokenInput.addEventListener('change', onTokenInput);
+      tokenInput.addEventListener('blur', onTokenInput);
+      tokenInput.addEventListener('input', () => {
+        if (tokenInput.value.trim().length > 30) {
+          setTimeout(onTokenInput, 300);
+        }
       });
     }
-
-    const labels = document.querySelectorAll('label, .setting-label, .title');
-    labels.forEach((label) => {
-      const text = label.textContent || '';
-      if (text.includes('Connected Account') || text.includes('AniList User ID') || text.includes('AniList Username')) {
-        const parent = label.closest('.setting-item, .setting, div');
-        if (parent) {
-          const input = parent.querySelector('input');
-          if (input && !input.disabled) {
-            input.disabled = true;
-            input.readOnly = true;
-            input.style.opacity = '0.6';
-            input.style.cursor = 'not-allowed';
-          }
-        }
-      }
-    });
   };
 
   const observer = new MutationObserver(() => {
-    applyDisabled();
+    syncUI();
   });
 
   if (document.body) {
     observer.observe(document.body, { childList: true, subtree: true });
   }
-  setInterval(applyDisabled, 2000);
+  setInterval(syncUI, 2000);
 };
