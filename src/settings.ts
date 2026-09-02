@@ -1,4 +1,4 @@
-import { validateAndSaveToken, getToken } from './auth';
+import { validateAndSaveToken, getToken, getLastValidatedToken } from './auth';
 
 declare const StremioEnhancedAPI: any;
 
@@ -118,7 +118,10 @@ export const registerPluginSettings = async (): Promise<void> => {
     try {
       StremioEnhancedAPI.onSettingsSaved(async (newSettings: any) => {
         if (newSettings && typeof newSettings.anilist_token === 'string') {
-          await validateAndSaveToken(newSettings.anilist_token, false);
+          const clean = newSettings.anilist_token.trim().replace(/^Bearer\s+/i, '');
+          if (clean && clean !== getLastValidatedToken()) {
+            await validateAndSaveToken(clean, false);
+          }
         }
       });
     } catch (e) {}
@@ -137,6 +140,7 @@ export const registerPluginSettings = async (): Promise<void> => {
 
 const setupSettingsObserver = (): void => {
   let lastTokenValue = '';
+  let debounceTimer: any = null;
 
   const syncModal = async () => {
     try {
@@ -172,31 +176,29 @@ const setupSettingsObserver = (): void => {
         tokenInput.dataset.anilistBound = 'true';
         lastTokenValue = tokenInput.value.trim();
 
-        const onTokenInput = async () => {
-          const val = tokenInput.value.trim();
-          if (val === lastTokenValue) return;
-          lastTokenValue = val;
+        const onTokenInput = () => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            const val = tokenInput.value.trim();
+            if (val === lastTokenValue) return;
+            lastTokenValue = val;
 
-          if (val.length > 20) {
-            updateDomInputs('Validating...', '', 'loading');
-            const result = await validateAndSaveToken(val, true);
-            if (result) {
-              updateDomInputs(result.name, result.id.toString(), 'connected');
+            if (val.length > 20) {
+              const result = await validateAndSaveToken(val, true);
+              if (result) {
+                updateDomInputs(result.name, result.id.toString(), 'connected');
+              }
+            } else if (val.length === 0) {
+              await validateAndSaveToken('', false);
+              updateDomInputs('Not connected', '');
             }
-          } else if (val.length === 0) {
-            await validateAndSaveToken('', false);
-            updateDomInputs('Not connected', '');
-          }
+          }, 400);
         };
 
         tokenInput.addEventListener('paste', () => setTimeout(onTokenInput, 50));
         tokenInput.addEventListener('change', onTokenInput);
         tokenInput.addEventListener('blur', onTokenInput);
-        tokenInput.addEventListener('input', () => {
-          if (tokenInput.value.trim().length > 30) {
-            setTimeout(onTokenInput, 200);
-          }
-        });
+        tokenInput.addEventListener('input', onTokenInput);
       }
     } catch (e) {}
   };
@@ -209,5 +211,5 @@ const setupSettingsObserver = (): void => {
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  setInterval(syncModal, 500);
+  setInterval(syncModal, 1000);
 };

@@ -10,7 +10,8 @@ export const anilistRequest = async (query: string, variables: object, token?: s
     headers['Authorization'] = `Bearer ${cleanToken}`;
   }
 
-  while (true) {
+  let retries = 0;
+  while (retries < 3) {
     const response = await fetch('https://graphql.anilist.co', {
       method: 'POST',
       headers,
@@ -18,8 +19,9 @@ export const anilistRequest = async (query: string, variables: object, token?: s
     });
 
     if (response.status === 429) {
+      retries++;
       const retryAfter = response.headers.get('Retry-After');
-      const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : 5000;
+      const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : 3000;
       await delay(waitTime);
       continue;
     }
@@ -30,6 +32,7 @@ export const anilistRequest = async (query: string, variables: object, token?: s
     }
     return data.data;
   }
+  throw new Error('AniList rate limit exceeded. Please wait a moment.');
 };
 
 export const getViewer = async (token: string): Promise<{ id: number; name: string; avatar: { medium: string } } | null> => {
