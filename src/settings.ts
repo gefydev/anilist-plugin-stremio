@@ -1,3 +1,5 @@
+import { validateAndSaveToken, getToken } from './auth';
+
 declare const StremioEnhancedAPI: any;
 
 export const registerPluginSettings = async (): Promise<void> => {
@@ -6,21 +8,21 @@ export const registerPluginSettings = async (): Promise<void> => {
       key: 'anilist_token',
       type: 'input',
       label: 'AniList Access Token',
-      description: 'Paste your AniList access token here',
+      description: 'Paste your AniList access token here (Account connects automatically)',
       defaultValue: ''
     },
     {
       key: 'anilist_username',
       type: 'input',
-      label: 'AniList Username',
-      description: 'Shows your connected AniList username',
+      label: 'Connected Account (Read Only)',
+      description: 'Automatically updated with your AniList username',
       defaultValue: 'Not connected'
     },
     {
       key: 'anilist_user_id',
       type: 'input',
-      label: 'AniList User ID',
-      description: '',
+      label: 'AniList User ID (Read Only)',
+      description: 'Automatically updated with your AniList user ID',
       defaultValue: ''
     },
     {
@@ -51,4 +53,63 @@ export const registerPluginSettings = async (): Promise<void> => {
       ]
     }
   ]);
+
+  StremioEnhancedAPI.onSettingChange('anilist_token', async (newToken: string) => {
+    if (typeof newToken === 'string') {
+      await validateAndSaveToken(newToken, true);
+    }
+  });
+
+  const currentToken = await getToken();
+  if (currentToken) {
+    const currentUsername = await StremioEnhancedAPI.getSetting('anilist_username');
+    if (!currentUsername || currentUsername === 'Not connected' || currentUsername === 'Invalid token') {
+      await validateAndSaveToken(currentToken, false);
+    }
+  }
+
+  setupDisabledSettingsObserver();
+};
+
+const setupDisabledSettingsObserver = (): void => {
+  const readOnlyKeys = ['anilist_username', 'anilist_user_id'];
+
+  const applyDisabled = () => {
+    for (const key of readOnlyKeys) {
+      const inputs = document.querySelectorAll(`input[name="${key}"], input[id*="${key}"]`);
+      inputs.forEach((input: Element) => {
+        const htmlInput = input as HTMLInputElement;
+        htmlInput.disabled = true;
+        htmlInput.readOnly = true;
+        htmlInput.style.opacity = '0.6';
+        htmlInput.style.cursor = 'not-allowed';
+      });
+    }
+
+    const labels = document.querySelectorAll('label, .setting-label, .title');
+    labels.forEach((label) => {
+      const text = label.textContent || '';
+      if (text.includes('Connected Account') || text.includes('AniList User ID') || text.includes('AniList Username')) {
+        const parent = label.closest('.setting-item, .setting, div');
+        if (parent) {
+          const input = parent.querySelector('input');
+          if (input && !input.disabled) {
+            input.disabled = true;
+            input.readOnly = true;
+            input.style.opacity = '0.6';
+            input.style.cursor = 'not-allowed';
+          }
+        }
+      }
+    });
+  };
+
+  const observer = new MutationObserver(() => {
+    applyDisabled();
+  });
+
+  if (document.body) {
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+  setInterval(applyDisabled, 2000);
 };

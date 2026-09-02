@@ -6,7 +6,8 @@ export const anilistRequest = async (query: string, variables: object, token?: s
     'Accept': 'application/json'
   };
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    const cleanToken = token.trim().replace(/^Bearer\s+/i, '');
+    headers['Authorization'] = `Bearer ${cleanToken}`;
   }
 
   while (true) {
