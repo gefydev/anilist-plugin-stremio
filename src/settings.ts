@@ -90,56 +90,59 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
 };
 
 export const registerPluginSettings = async (): Promise<void> => {
-  await StremioEnhancedAPI.registerSettings([
-    {
-      key: 'anilist_token',
-      type: 'input',
-      label: 'AniList Access Token',
-      description: 'Paste your AniList access token here (Account connects automatically)',
-      defaultValue: ''
-    },
-    {
-      key: 'anilist_username',
-      type: 'input',
-      label: 'Connected Account (Read Only)',
-      description: 'Automatically updated with your AniList username',
-      defaultValue: 'Not connected'
-    },
-    {
-      key: 'anilist_user_id',
-      type: 'input',
-      label: 'AniList User ID (Read Only)',
-      description: 'Automatically updated with your AniList user ID',
-      defaultValue: ''
-    },
-    {
-      key: 'auto_add_to_list',
-      type: 'toggle',
-      label: 'Ask to Add New Anime',
-      description: 'Ask before adding anime that are not on your list',
-      defaultValue: true
-    },
-    {
-      key: 'auto_complete',
-      type: 'toggle',
-      label: 'Auto-Complete Anime',
-      description: 'Automatically mark anime as COMPLETED on the last episode',
-      defaultValue: true
-    },
-    {
-      key: 'scrobble_threshold',
-      type: 'select',
-      label: 'Scrobble Threshold',
-      description: 'How much of the episode to watch before updating AniList',
-      defaultValue: '80',
-      options: [
-        { label: '50%', value: '50' },
-        { label: '70%', value: '70' },
-        { label: '80% (Recommended)', value: '80' },
-        { label: '90%', value: '90' }
-      ]
-    }
-  ]);
+  try {
+    await StremioEnhancedAPI.registerSettings([
+      {
+        key: 'anilist_token',
+        type: 'input',
+        label: 'AniList Access Token',
+        description: 'Paste your AniList access token here (Account connects automatically)',
+        defaultValue: ''
+      },
+      {
+        key: 'anilist_username',
+        type: 'input',
+        label: 'Connected Account (Read Only)',
+        description: 'Automatically updated with your AniList username',
+        defaultValue: 'Not connected'
+      },
+      {
+        key: 'anilist_user_id',
+        type: 'input',
+        label: 'AniList User ID (Read Only)',
+        description: 'Automatically updated with your AniList user ID',
+        defaultValue: ''
+      },
+      {
+        key: 'auto_add_to_list',
+        type: 'toggle',
+        label: 'Ask to Add New Anime',
+        description: 'Ask before adding anime that are not on your list',
+        defaultValue: true
+      },
+      {
+        key: 'auto_complete',
+        type: 'toggle',
+        label: 'Auto-Complete Anime',
+        description: 'Automatically mark anime as COMPLETED on the last episode',
+        defaultValue: true
+      },
+      {
+        key: 'scrobble_threshold',
+        type: 'select',
+        label: 'Scrobble Threshold',
+        description: 'How much of the episode to watch before updating AniList',
+        defaultValue: '80',
+        options: [
+          { label: '50%', value: '50' },
+          { label: '70%', value: '70' },
+          { label: '80% (Recommended)', value: '80' },
+          { label: '90%', value: '90' }
+        ]
+      }
+    ]);
+  } catch (e) {
+  }
 
   if (typeof StremioEnhancedAPI !== 'undefined' && typeof StremioEnhancedAPI.onSettingChange === 'function') {
     try {
