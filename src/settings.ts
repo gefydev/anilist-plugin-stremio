@@ -135,6 +135,18 @@ export const registerPluginSettings = async (): Promise<void> => {
     }
   }
 
+  let lastKnownToken = (await getToken()) || '';
+  setInterval(async () => {
+    const currentTok = (await getToken()) || '';
+    if (currentTok && currentTok !== lastKnownToken) {
+      lastKnownToken = currentTok;
+      await validateAndSaveToken(currentTok, true);
+    } else if (!currentTok && lastKnownToken) {
+      lastKnownToken = '';
+      await validateAndSaveToken('', false);
+    }
+  }, 2000);
+
   setupSettingsObserver();
 };
 
