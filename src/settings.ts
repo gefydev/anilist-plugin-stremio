@@ -2,135 +2,44 @@ import { validateAndSaveToken, getToken } from './auth';
 
 declare const StremioEnhancedAPI: any;
 
-export const isSearchOrNav = (el: Element | null): boolean => {
-  if (!el) return false;
-  if (el.closest('header, nav, .search-bar, .search, .search-container, .nav-bar, .header, #search, [class*="search"], [class*="nav"], [class*="header"]')) {
-    return true;
-  }
-  const input = el as HTMLInputElement;
-  const placeholder = (input.placeholder || '').toLowerCase();
-  if (placeholder.includes('search') || placeholder.includes('buscar')) {
-    return true;
-  }
-  const className = (el.className || '').toString().toLowerCase();
-  if (className.includes('search') || className.includes('nav') || className.includes('header')) {
-    return true;
-  }
-  return false;
-};
-
-export const getSettingsContainer = (): HTMLElement | null => {
-  return document.querySelector('.settings-container, .settings-content, .settings-list, .enhanced-settings, .settings, [class*="settings"]') || null;
-};
-
-export const findSettingRow = (labelText: string): HTMLElement | null => {
-  try {
-    const container = getSettingsContainer();
-    if (!container) return null;
-
-    const elements = Array.from(container.querySelectorAll('*'));
-    for (const el of elements) {
-      if (isSearchOrNav(el)) continue;
-
-      const text = (el.textContent || '').trim().toLowerCase();
-      if (el.children.length === 0 && text.includes(labelText.toLowerCase())) {
-        let curr: HTMLElement | null = el.parentElement;
-        for (let i = 0; i < 4 && curr && curr !== container; i++) {
-          const input = curr.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])') as HTMLInputElement;
-          if (input && !isSearchOrNav(input)) {
-            return curr;
-          }
-          curr = curr.parentElement;
-        }
-      }
-    }
-  } catch (e) {}
-  return null;
-};
-
-export const findSettingInput = (key: string, labels: string[] = []): HTMLInputElement | null => {
-  try {
-    const container = getSettingsContainer();
-    if (!container) return null;
-
-    if (key && /^[a-zA-Z0-9_-]+$/.test(key)) {
-      const direct = container.querySelector(`input[name="${key}"]:not([type="file"]), input[data-key="${key}"]:not([type="file"])`) as HTMLInputElement;
-      if (direct && !isSearchOrNav(direct)) return direct;
-    }
-
-    for (const label of labels) {
-      const row = findSettingRow(label);
-      if (row) {
-        const input = row.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])') as HTMLInputElement;
-        if (input && !isSearchOrNav(input)) return input;
-      }
-    }
-  } catch (e) {}
-
-  return null;
-};
-
-export const restoreSearchbar = (): void => {
-  try {
-    const searchInputs = document.querySelectorAll('header input, nav input, .search-bar input, input[placeholder*="Search"], input[placeholder*="search"], [class*="search"] input');
-    searchInputs.forEach((input: Element) => {
-      const htmlInput = input as HTMLInputElement;
-      if (htmlInput.disabled && (htmlInput.value === 'elgena' || htmlInput.value.includes('Connected') || htmlInput.value.includes('8249638') || htmlInput.value.includes('Validating'))) {
-        htmlInput.disabled = false;
-        htmlInput.readOnly = false;
-        htmlInput.value = '';
-        htmlInput.style.opacity = '1';
-        htmlInput.style.cursor = 'text';
-      }
-    });
-  } catch (e) {}
-};
-
 export const updateDomInputs = (username: string, userId: string, status?: 'connected' | 'error' | 'loading'): void => {
   try {
-    restoreSearchbar();
+    const modal = document.querySelector('[id*="AniListSync"][id*="settings-modal"], #AniListSyncsettingsmodal, #AniListSync-settings-modal') as HTMLElement;
+    if (!modal) return;
 
-    if (!location.hash.includes('settings') && !getSettingsContainer()) {
-      return;
-    }
-
-    const usernameInput = findSettingInput('anilist_username', ['Connected Account', 'AniList Username', 'username']);
-    if (usernameInput && !isSearchOrNav(usernameInput)) {
-      try {
-        usernameInput.value = username;
-      } catch (e) {}
+    const usernameInput = modal.querySelector('input[data-key="anilist_username"]') as HTMLInputElement;
+    if (usernameInput) {
+      usernameInput.value = username;
       usernameInput.disabled = true;
       usernameInput.readOnly = true;
       usernameInput.style.opacity = '0.7';
       usernameInput.style.cursor = 'not-allowed';
     }
 
-    const userIdInput = findSettingInput('anilist_user_id', ['AniList User ID', 'User ID', 'user_id']);
-    if (userIdInput && !isSearchOrNav(userIdInput)) {
-      try {
-        userIdInput.value = userId;
-      } catch (e) {}
+    const userIdInput = modal.querySelector('input[data-key="anilist_user_id"]') as HTMLInputElement;
+    if (userIdInput) {
+      userIdInput.value = userId;
       userIdInput.disabled = true;
       userIdInput.readOnly = true;
       userIdInput.style.opacity = '0.7';
       userIdInput.style.cursor = 'not-allowed';
     }
 
-    const tokenInput = findSettingInput('anilist_token', ['AniList Access Token', 'Access Token', 'token']);
-    if (tokenInput && !isSearchOrNav(tokenInput) && tokenInput.parentElement) {
-      let badge = document.getElementById('anilist-status-badge');
+    const tokenInput = modal.querySelector('input[data-key="anilist_token"]') as HTMLInputElement;
+    if (tokenInput && tokenInput.parentElement) {
+      let badge = modal.querySelector('#anilist-status-badge') as HTMLElement;
       if (!badge) {
         badge = document.createElement('div');
         badge.id = 'anilist-status-badge';
         badge.style.marginTop = '8px';
-        badge.style.padding = '6px 10px';
-        badge.style.borderRadius = '4px';
+        badge.style.padding = '6px 12px';
+        badge.style.borderRadius = '6px';
         badge.style.fontSize = '12px';
         badge.style.fontWeight = 'bold';
         badge.style.display = 'flex';
         badge.style.alignItems = 'center';
         badge.style.gap = '6px';
-        badge.style.background = 'rgba(0, 0, 0, 0.3)';
+        badge.style.background = 'rgba(0, 0, 0, 0.4)';
         tokenInput.parentElement.appendChild(badge);
       }
 
@@ -203,14 +112,13 @@ export const registerPluginSettings = async (): Promise<void> => {
         ]
       }
     ]);
-  } catch (e) {
-  }
+  } catch (e) {}
 
-  if (typeof StremioEnhancedAPI !== 'undefined' && typeof StremioEnhancedAPI.onSettingChange === 'function') {
+  if (typeof StremioEnhancedAPI !== 'undefined' && typeof StremioEnhancedAPI.onSettingsSaved === 'function') {
     try {
-      StremioEnhancedAPI.onSettingChange('anilist_token', async (newToken: string) => {
-        if (typeof newToken === 'string') {
-          await validateAndSaveToken(newToken, true);
+      StremioEnhancedAPI.onSettingsSaved(async (newSettings: any) => {
+        if (newSettings && typeof newSettings.anilist_token === 'string') {
+          await validateAndSaveToken(newSettings.anilist_token, false);
         }
       });
     } catch (e) {}
@@ -224,37 +132,43 @@ export const registerPluginSettings = async (): Promise<void> => {
     }
   }
 
-  let lastKnownToken = (await getToken()) || '';
-  setInterval(async () => {
-    const currentTok = (await getToken()) || '';
-    if (currentTok && currentTok !== lastKnownToken) {
-      lastKnownToken = currentTok;
-      await validateAndSaveToken(currentTok, true);
-    } else if (!currentTok && lastKnownToken) {
-      lastKnownToken = '';
-      await validateAndSaveToken('', false);
-    }
-  }, 2000);
-
   setupSettingsObserver();
 };
 
 const setupSettingsObserver = (): void => {
   let lastTokenValue = '';
 
-  const syncUI = async () => {
+  const syncModal = async () => {
     try {
-      if (!location.hash.includes('settings') && !getSettingsContainer()) {
-        return;
+      const modal = document.querySelector('[id*="AniListSync"][id*="settings-modal"], #AniListSyncsettingsmodal, #AniListSync-settings-modal') as HTMLElement;
+      if (!modal) return;
+
+      const tokenInput = modal.querySelector('input[data-key="anilist_token"]') as HTMLInputElement;
+      const usernameInput = modal.querySelector('input[data-key="anilist_username"]') as HTMLInputElement;
+      const userIdInput = modal.querySelector('input[data-key="anilist_user_id"]') as HTMLInputElement;
+
+      if (!tokenInput) return;
+
+      if (usernameInput) {
+        usernameInput.disabled = true;
+        usernameInput.readOnly = true;
+        usernameInput.style.opacity = '0.7';
+        usernameInput.style.cursor = 'not-allowed';
       }
 
-      const username = (await StremioEnhancedAPI.getSetting('anilist_username')) || localStorage.getItem('anilist_username') || 'Not connected';
-      const userId = (await StremioEnhancedAPI.getSetting('anilist_user_id')) || localStorage.getItem('anilist_user_id') || '';
-      
-      updateDomInputs(username, userId);
+      if (userIdInput) {
+        userIdInput.disabled = true;
+        userIdInput.readOnly = true;
+        userIdInput.style.opacity = '0.7';
+        userIdInput.style.cursor = 'not-allowed';
+      }
 
-      const tokenInput = findSettingInput('anilist_token', ['AniList Access Token', 'Access Token', 'token']);
-      if (tokenInput && !tokenInput.dataset.anilistBound) {
+      const currentUsername = (await StremioEnhancedAPI.getSetting('anilist_username')) || localStorage.getItem('anilist_username') || 'Not connected';
+      const currentUserId = (await StremioEnhancedAPI.getSetting('anilist_user_id')) || localStorage.getItem('anilist_user_id') || '';
+
+      updateDomInputs(currentUsername, currentUserId);
+
+      if (!tokenInput.dataset.anilistBound) {
         tokenInput.dataset.anilistBound = 'true';
         lastTokenValue = tokenInput.value.trim();
 
@@ -265,9 +179,13 @@ const setupSettingsObserver = (): void => {
 
           if (val.length > 20) {
             updateDomInputs('Validating...', '', 'loading');
-            await validateAndSaveToken(val, true);
+            const result = await validateAndSaveToken(val, true);
+            if (result) {
+              updateDomInputs(result.name, result.id.toString(), 'connected');
+            }
           } else if (val.length === 0) {
             await validateAndSaveToken('', false);
+            updateDomInputs('Not connected', '');
           }
         };
 
@@ -284,11 +202,12 @@ const setupSettingsObserver = (): void => {
   };
 
   const observer = new MutationObserver(() => {
-    syncUI();
+    syncModal();
   });
 
   if (document.body) {
     observer.observe(document.body, { childList: true, subtree: true });
   }
-  setInterval(syncUI, 1500);
+
+  setInterval(syncModal, 500);
 };
