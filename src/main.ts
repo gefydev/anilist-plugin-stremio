@@ -12,7 +12,21 @@ import { initScrobbler } from './scrobbler';
 declare const StremioEnhancedAPI: any;
 
 (async () => {
-  await registerPluginSettings();
-  initScrobbler();
-  StremioEnhancedAPI.logger.info('AniListSync plugin initialized');
+  try {
+    await registerPluginSettings();
+  } catch (e) {
+    console.error('[AniListSync] Error registering settings:', e);
+  }
+
+  try {
+    initScrobbler();
+  } catch (e) {
+    console.error('[AniListSync] Error initializing scrobbler:', e);
+  }
+
+  if (typeof StremioEnhancedAPI !== 'undefined' && StremioEnhancedAPI?.logger?.info) {
+    StremioEnhancedAPI.logger.info('AniListSync plugin initialized');
+  } else {
+    console.log('[AniListSync] Plugin initialized');
+  }
 })();

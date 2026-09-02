@@ -141,11 +141,15 @@ export const registerPluginSettings = async (): Promise<void> => {
     }
   ]);
 
-  StremioEnhancedAPI.onSettingChange('anilist_token', async (newToken: string) => {
-    if (typeof newToken === 'string') {
-      await validateAndSaveToken(newToken, true);
-    }
-  });
+  if (typeof StremioEnhancedAPI !== 'undefined' && typeof StremioEnhancedAPI.onSettingChange === 'function') {
+    try {
+      StremioEnhancedAPI.onSettingChange('anilist_token', async (newToken: string) => {
+        if (typeof newToken === 'string') {
+          await validateAndSaveToken(newToken, true);
+        }
+      });
+    } catch (e) {}
+  }
 
   const currentToken = await getToken();
   if (currentToken) {
