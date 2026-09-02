@@ -2,14 +2,40 @@ import { validateAndSaveToken, getToken } from './auth';
 
 declare const StremioEnhancedAPI: any;
 
+export const isSearchOrNav = (el: Element | null): boolean => {
+  if (!el) return false;
+  if (el.closest('header, nav, .search-bar, .search, .search-container, .nav-bar, .header, #search, [class*="search"], [class*="nav"], [class*="header"]')) {
+    return true;
+  }
+  const input = el as HTMLInputElement;
+  const placeholder = (input.placeholder || '').toLowerCase();
+  if (placeholder.includes('search') || placeholder.includes('buscar')) {
+    return true;
+  }
+  const className = (el.className || '').toString().toLowerCase();
+  if (className.includes('search') || className.includes('nav') || className.includes('header')) {
+    return true;
+  }
+  return false;
+};
+
+export const getSettingsContainer = (): HTMLElement | null => {
+  return document.querySelector('.settings-container, .settings-content, .settings-list, .enhanced-settings, .settings, [class*="settings"]') || null;
+};
+
 export const findSettingRow = (labelText: string): HTMLElement | null => {
-  const elements = Array.from(document.querySelectorAll('*'));
+  const container = getSettingsContainer();
+  if (!container) return null;
+
+  const elements = Array.from(container.querySelectorAll('*'));
   for (const el of elements) {
-    if (el.children.length === 0 && (el.textContent || '').trim().toLowerCase().includes(labelText.toLowerCase())) {
+    if (isSearchOrNav(el)) continue;
+
+    if (el.children.length === 0 && (el.textContent || '').trim().toLowerCase() === labelText.toLowerCase()) {
       let curr: HTMLElement | null = el.parentElement;
-      for (let i = 0; i < 6 && curr; i++) {
+      for (let i = 0; i < 4 && curr && curr !== container; i++) {
         const input = curr.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])') as HTMLInputElement;
-        if (input) {
+        if (input && !isSearchOrNav(input)) {
           return curr;
         }
         curr = curr.parentElement;
@@ -20,25 +46,48 @@ export const findSettingRow = (labelText: string): HTMLElement | null => {
 };
 
 export const findSettingInput = (keywords: string[]): HTMLInputElement | null => {
+  const container = getSettingsContainer();
+  if (!container) return null;
+
   for (const kw of keywords) {
-    const direct = document.querySelector(`input[name="${kw}"]:not([type="file"]), input#${kw}:not([type="file"]), input[data-key="${kw}"]:not([type="file"]), input[placeholder*="${kw}"]:not([type="file"])`) as HTMLInputElement;
-    if (direct && direct.type !== 'file') return direct;
+    const direct = container.querySelector(`input[name="${kw}"]:not([type="file"]), input#${kw}:not([type="file"]), input[data-key="${kw}"]:not([type="file"])`) as HTMLInputElement;
+    if (direct && !isSearchOrNav(direct)) return direct;
   }
 
   for (const kw of keywords) {
     const row = findSettingRow(kw);
     if (row) {
       const input = row.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])') as HTMLInputElement;
-      if (input && input.type !== 'file') return input;
+      if (input && !isSearchOrNav(input)) return input;
     }
   }
 
   return null;
 };
 
+export const restoreSearchbar = (): void => {
+  const searchInputs = document.querySelectorAll('header input, nav input, .search-bar input, input[placeholder*="Search"], input[placeholder*="search"], [class*="search"] input');
+  searchInputs.forEach((input: Element) => {
+    const htmlInput = input as HTMLInputElement;
+    if (htmlInput.disabled && (htmlInput.value === 'elgena' || htmlInput.value.includes('Connected') || htmlInput.value.includes('8249638') || htmlInput.value.includes('Validating'))) {
+      htmlInput.disabled = false;
+      htmlInput.readOnly = false;
+      htmlInput.value = '';
+      htmlInput.style.opacity = '1';
+      htmlInput.style.cursor = 'text';
+    }
+  });
+};
+
 export const updateDomInputs = (username: string, userId: string, status?: 'connected' | 'error' | 'loading'): void => {
-  const usernameInput = findSettingInput(['anilist_username', 'Connected Account', 'AniList Username']);
-  if (usernameInput && usernameInput.type !== 'file' && usernameInput.type !== 'checkbox' && usernameInput.type !== 'radio') {
+  restoreSearchbar();
+
+  if (!location.hash.includes('settings') && !getSettingsContainer()) {
+    return;
+  }
+
+  const usernameInput = findSettingInput(['anilist_username', 'Connected Account (Read Only)', 'Connected Account', 'AniList Username']);
+  if (usernameInput && !isSearchOrNav(usernameInput)) {
     try {
       usernameInput.value = username;
     } catch (e) {}
@@ -48,8 +97,8 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
     usernameInput.style.cursor = 'not-allowed';
   }
 
-  const userIdInput = findSettingInput(['anilist_user_id', 'AniList User ID']);
-  if (userIdInput && userIdInput.type !== 'file' && userIdInput.type !== 'checkbox' && userIdInput.type !== 'radio') {
+  const userIdInput = findSettingInput(['anilist_user_id', 'AniList User ID (Read Only)', 'AniList User ID']);
+  if (userIdInput && !isSearchOrNav(userIdInput)) {
     try {
       userIdInput.value = userId;
     } catch (e) {}
@@ -60,7 +109,7 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
   }
 
   const tokenInput = findSettingInput(['anilist_token', 'AniList Access Token']);
-  if (tokenInput && tokenInput.type !== 'file' && tokenInput.parentElement) {
+  if (tokenInput && !isSearchOrNav(tokenInput) && tokenInput.parentElement) {
     let badge = document.getElementById('anilist-status-badge');
     if (!badge) {
       badge = document.createElement('div');
