@@ -2,22 +2,37 @@ import { validateAndSaveToken, getToken } from './auth';
 
 declare const StremioEnhancedAPI: any;
 
-export const findSettingInput = (keywords: string[]): HTMLInputElement | null => {
-  for (const kw of keywords) {
-    const direct = document.querySelector(`input[name="${kw}"], input#${kw}, input[data-key="${kw}"]`) as HTMLInputElement;
-    if (direct) return direct;
-  }
-
-  const allInputs = Array.from(document.querySelectorAll('input'));
-  for (const input of allInputs) {
-    const parent = input.closest('.setting-item, .setting, .settings-item, .item, .option-container, tr, div');
-    if (parent) {
-      const text = (parent.textContent || '').toLowerCase();
-      if (keywords.some(kw => text.includes(kw.toLowerCase()))) {
-        return input;
+export const findSettingRow = (labelText: string): HTMLElement | null => {
+  const elements = Array.from(document.querySelectorAll('*'));
+  for (const el of elements) {
+    if (el.children.length === 0 && (el.textContent || '').trim().toLowerCase().includes(labelText.toLowerCase())) {
+      let curr: HTMLElement | null = el.parentElement;
+      for (let i = 0; i < 6 && curr; i++) {
+        const input = curr.querySelector('input');
+        if (input) {
+          return curr;
+        }
+        curr = curr.parentElement;
       }
     }
   }
+  return null;
+};
+
+export const findSettingInput = (keywords: string[]): HTMLInputElement | null => {
+  for (const kw of keywords) {
+    const direct = document.querySelector(`input[name="${kw}"], input#${kw}, input[data-key="${kw}"], input[placeholder*="${kw}"]`) as HTMLInputElement;
+    if (direct) return direct;
+  }
+
+  for (const kw of keywords) {
+    const row = findSettingRow(kw);
+    if (row) {
+      const input = row.querySelector('input');
+      if (input) return input;
+    }
+  }
+
   return null;
 };
 
@@ -28,6 +43,7 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
     usernameInput.disabled = true;
     usernameInput.readOnly = true;
     usernameInput.style.opacity = '0.7';
+    usernameInput.style.cursor = 'not-allowed';
   }
 
   const userIdInput = findSettingInput(['anilist_user_id', 'AniList User ID']);
@@ -36,6 +52,7 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
     userIdInput.disabled = true;
     userIdInput.readOnly = true;
     userIdInput.style.opacity = '0.7';
+    userIdInput.style.cursor = 'not-allowed';
   }
 
   const tokenInput = findSettingInput(['anilist_token', 'AniList Access Token']);
@@ -44,12 +61,15 @@ export const updateDomInputs = (username: string, userId: string, status?: 'conn
     if (!badge) {
       badge = document.createElement('div');
       badge.id = 'anilist-status-badge';
-      badge.style.marginTop = '6px';
+      badge.style.marginTop = '8px';
+      badge.style.padding = '6px 10px';
+      badge.style.borderRadius = '4px';
       badge.style.fontSize = '12px';
       badge.style.fontWeight = 'bold';
       badge.style.display = 'flex';
       badge.style.alignItems = 'center';
       badge.style.gap = '6px';
+      badge.style.background = 'rgba(0, 0, 0, 0.3)';
       tokenInput.parentElement.appendChild(badge);
     }
 
@@ -182,7 +202,7 @@ const setupSettingsObserver = (): void => {
       tokenInput.addEventListener('blur', onTokenInput);
       tokenInput.addEventListener('input', () => {
         if (tokenInput.value.trim().length > 30) {
-          setTimeout(onTokenInput, 300);
+          setTimeout(onTokenInput, 200);
         }
       });
     }
@@ -195,5 +215,5 @@ const setupSettingsObserver = (): void => {
   if (document.body) {
     observer.observe(document.body, { childList: true, subtree: true });
   }
-  setInterval(syncUI, 2000);
+  setInterval(syncUI, 1500);
 };
